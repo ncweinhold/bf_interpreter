@@ -169,9 +169,6 @@ void BFInterpreter_eval(BFInterpreter *interpreter) {
         }
         interpreter->pc++;
     }
-#ifdef DEBUG
-    printf("Item at data[0] is: %d\n", interpreter->data[0]);
-#endif
 }
 
 int main(int argc, char* argv[]) {
