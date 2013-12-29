@@ -3,13 +3,17 @@
   */
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
+#define MAX_DATA_SIZE 30000
+#define MAX_TAPE_SIZE 30000
+
 typedef struct {
-    unsigned short data[30000];
+    unsigned short data[MAX_DATA_SIZE];
     unsigned int data_ptr;
 
-    char program_tape[30000];
+    char program_tape[MAX_TAPE_SIZE];
     unsigned int pc;
 } BFInterpreter;
 
@@ -18,25 +22,34 @@ void BFInterpreter_dump_tape(BFInterpreter *interpreter);
 void BFInterpreter_eval(BFInterpreter *interpreter);
 
 void BFInterpreter_compile(BFInterpreter *interpreter, char *program) {
+    int len = strlen(program);
+    /*
+     * Temporary error checking - for now, if the entire program is too large,
+     * exit. Eventually this will be changed so that only actual brainfuck
+     * instructions count towards the count...
+     */
+    if (len > MAX_TAPE_SIZE) {
+        printf("The program tape is too large to be processed!\n");
+        exit(1);
+    }
 
 #ifdef DEBUG
     printf("Compiling the program: %s\n", program);
 #endif
 
-    int len = strlen(program);
     int idx = 0;
     int pc = 0;
+    char current_char = 0;
     while (idx != len) {
 
+        current_char = program[idx];
 #ifdef DEBUG
-        printf("Current token is: %c\n", program[idx]);
+        printf("Current token is: %c\n", current_char);
 #endif
-        if (program[idx] == '+') {
-            interpreter->program_tape[pc] = program[idx];
-            pc++;
-        }
-        if (program[idx] == '-') {
-            interpreter->program_tape[pc] = program[idx];
+
+        if ((current_char == '+') || (current_char == '-') || (current_char == '>') 
+            || (current_char == '<') || (current_char == '.') || (current_char == ',')) {
+            interpreter->program_tape[pc] = current_char;
             pc++;
         }
         idx++;
@@ -61,6 +74,18 @@ void BFInterpreter_eval(BFInterpreter *interpreter) {
         if (current_instruction == '-') {
             interpreter->data[interpreter->data_ptr]--;
         }
+        if (current_instruction == '>') {
+            interpreter->data_ptr++;
+        }
+        if (current_instruction == '<') {
+            interpreter->data_ptr--;
+        }
+        if (current_instruction == '.') {
+            putchar(interpreter->data[interpreter->data_ptr]);
+        }
+        if (current_instruction == ',') {
+            interpreter->data[interpreter->data_ptr] = getchar();
+        }
         interpreter->pc++;
     }
 #ifdef DEBUG
@@ -70,11 +95,9 @@ void BFInterpreter_eval(BFInterpreter *interpreter) {
 
 int main(int argc, char* argv[]) {
     BFInterpreter interpreter;
-    BFInterpreter_compile(&interpreter, "+++++[]---");
-
+    BFInterpreter_compile(&interpreter, "++++,..>+++[]--<-");
     BFInterpreter_eval(&interpreter);
 
-    BFInterpreter_dump_tape(&interpreter);
-
+    printf("\n");
     return 0;
 }
