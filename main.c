@@ -10,7 +10,7 @@
 #define MAX_TAPE_SIZE 30000
 #define MAX_STACK_SIZE 5000
 
-typedef enum {SIMPLE, JUMP, END} instruction_type;
+typedef enum {SIMPLE=1, JUMP} instruction_type;
 
 typedef struct {
     instruction_type type;
@@ -35,11 +35,19 @@ unsigned int Stack_pop(Stack *stack);
 int Stack_empty(Stack *stack);
 
 void Stack_push(Stack *stack, unsigned int pc_value) {
+    if (stack->size == MAX_STACK_SIZE) {
+        printf("Stack overflow...\n");
+        exit(1);
+    }
     stack->pc_values[stack->size] = pc_value;
     stack->size++;
 }
 
 unsigned int Stack_pop(Stack *stack) {
+    if (!stack->size) {
+        printf("Trying to pop from an empty stack...\n");
+        exit(1);
+    }
     stack->size--;
     return stack->pc_values[stack->size];
 }
@@ -57,31 +65,20 @@ typedef struct {
     Stack jump_locations;
 } BFInterpreter;
 
-void BFInterpreter_compile(BFInterpreter *interpreter, char *program);
+void BFInterpreter_compile(BFInterpreter *interpreter, FILE *input_file);
 void BFInterpreter_eval(BFInterpreter *interpreter);
 
-void BFInterpreter_compile(BFInterpreter *interpreter, char *program) {
-    int len = strlen(program);
-    /*
-     * Temporary error checking - for now, if the entire program is too large,
-     * exit. Eventually this will be changed so that only actual brainfuck
-     * instructions count towards the count...
-     */
-    if (len > MAX_TAPE_SIZE) {
-        printf("The program tape is too large to be processed!\n");
-        exit(1);
-    }
-
-#ifdef DEBUG
-    printf("Compiling the program: %s\n", program);
-#endif
-
+void BFInterpreter_compile(BFInterpreter *interpreter, FILE *input_file) {
     int idx = 0;
     int pc = 0;
-    char current_char = 0;
-    while (idx != len) {
-
-        current_char = program[idx];
+    int c = 0;
+    char current_char;
+    while ((c = fgetc(input_file)) != EOF)  {
+        if (pc > MAX_TAPE_SIZE-1) {
+            printf("Program is larger than the tape size. Exiting...\n");
+            exit(1);
+        }
+        current_char = (char) c;
 #ifdef DEBUG
         printf("Current token is: %c\n", current_char);
 #endif
@@ -120,11 +117,10 @@ void BFInterpreter_compile(BFInterpreter *interpreter, char *program) {
         printf("Unmatched loop instruction!\n");
         exit(1);
     }
-    interpreter->program_tape[pc].type = END;
 }
 
 void BFInterpreter_eval(BFInterpreter *interpreter) {
-    while (interpreter->program_tape[interpreter->pc].type != END) {
+    while (interpreter->program_tape[interpreter->pc].type != 0) {
         BrainfuckInstruction current_instruction = interpreter->program_tape[interpreter->pc];
         char current_opcode;
         if (current_instruction.type == SIMPLE) {
@@ -173,8 +169,17 @@ void BFInterpreter_eval(BFInterpreter *interpreter) {
 
 int main(int argc, char* argv[]) {
     BFInterpreter interpreter;
-    BFInterpreter_compile(&interpreter, "++++++++++[>+++++++>++++++++++>+++>+<<<<-]>++.>+.+++++++..+++.>++.<<+++++++++++++++.>.+++.------.--------.>+.>.");
+
+    FILE *fp;
+    fp = fopen(argv[1], "r");
+    if ((!fp) || (argc != 2)) {
+        printf("Usage: %s source_file\n", argv[0]);
+        exit(1);
+    }
+    BFInterpreter_compile(&interpreter, fp);
     BFInterpreter_eval(&interpreter);
+
+    fclose(fp);
 
     return 0;
 }
