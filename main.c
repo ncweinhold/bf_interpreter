@@ -69,7 +69,6 @@ void BFInterpreter_compile(BFInterpreter *interpreter, FILE *input_file);
 void BFInterpreter_eval(BFInterpreter *interpreter);
 
 void BFInterpreter_compile(BFInterpreter *interpreter, FILE *input_file) {
-    int idx = 0;
     int pc = 0;
     int c = 0;
     char current_char;
@@ -111,7 +110,6 @@ void BFInterpreter_compile(BFInterpreter *interpreter, FILE *input_file) {
 #endif
             pc++;
         }
-        idx++;
     }
     if (!Stack_empty(&interpreter->jump_locations)) {
         printf("Unmatched loop instruction!\n");
